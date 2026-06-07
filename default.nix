@@ -18,15 +18,12 @@
     inherit (self) callPackage;
   in if !lib.isAttrs branch
   then callPackage branch { }
-  else lib.foldlAttrs (acc: k: v: let
-    val = v.val;
-  in acc // { ${k} =
-    if isPackageScopeInput v
-    then val
-    else
-      if isCallPackageable v then (callPackage val { })
-      else if lib.isAttrs v then buildTree (s: self.newScope (s // self)) v
-      else throw "${name}.packageOutputs: '${k}' is not a package; wrap it with ${name}.lib.pkg";
+  else lib.foldlAttrs (acc: k: v: acc // { ${k} =
+    if isPackageScopeInput v then v.val
+    else if isCallPackageable v then callPackage v.val { }
+    else if lib.isDerivation v then v
+    else if lib.isAttrs v then buildTree (s: self.newScope (s // self)) v
+    else callPackage v { };
   }) extraInputs branch);
 in {
   imports = [
